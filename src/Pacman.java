@@ -8,6 +8,7 @@ public class Pacman extends JPanel implements ActionListener, KeyListener{
 
     @Override
     public void actionPerformed(ActionEvent e) {
+        move();
         repaint();
     }
 
@@ -19,7 +20,18 @@ public class Pacman extends JPanel implements ActionListener, KeyListener{
 
     @Override
     public void keyReleased(KeyEvent e) {
-        System.out.println("Key listener :"+e.getKeyCode());
+        if(e.getKeyCode()==KeyEvent.VK_UP){
+            pacman.updateDirection('U');
+        }
+        if(e.getKeyCode()==KeyEvent.VK_DOWN){
+            pacman.updateDirection('D');
+        }
+        if(e.getKeyCode()==KeyEvent.VK_RIGHT){
+            pacman.updateDirection('R');
+        }
+        if(e.getKeyCode()==KeyEvent.VK_LEFT){
+            pacman.updateDirection('L');
+        }
     }
 
     class Block{
@@ -30,6 +42,35 @@ public class Pacman extends JPanel implements ActionListener, KeyListener{
         Image image;
         int startX;
         int startY;
+
+        char direction = 'U';
+        int velocityX = 0;
+        int velocityY =0;
+
+        void updateDirection(char direction){
+            this.direction = direction;
+            updateVelocity();
+        }
+        void updateVelocity(){
+            if(this.direction == 'U'){
+                velocityY = -tileSize/4;
+                velocityX =0;
+            }
+            if(this.direction == 'D'){
+                velocityY = -tileSize/4;
+                velocityX =0;
+            }
+            if(this.direction == 'R'){
+                velocityX = tileSize/4;
+                velocityY =0;
+            }
+            if(this.direction == 'D'){
+                velocityX = -tileSize/4;
+                velocityY =0;
+            }
+
+        }
+
 
          Block(Image image, int x, int y, int height, int width){
             this.image=image;
@@ -177,6 +218,11 @@ public class Pacman extends JPanel implements ActionListener, KeyListener{
             g.fillRect(food.x, food.y, food.width, food.height);
         }
 
+
+    }
+    public void move(){
+        pacman.x +=pacman.velocityX;
+        pacman.y +=pacman.velocityY;
 
     }
 
