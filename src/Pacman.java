@@ -4,7 +4,23 @@ import java.util.HashSet;
 import java.util.Random;
 import javax.swing.*;
 
-public class Pacman extends JPanel{
+public class Pacman extends JPanel implements ActionListener, KeyListener{
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        repaint();
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {}
+
+    @Override
+    public void keyPressed(KeyEvent e) {}
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        System.out.println("Key listener :"+e.getKeyCode());
+    }
 
     class Block{
         int x;
@@ -75,9 +91,13 @@ public class Pacman extends JPanel{
     HashSet<Block> ghosts;
     Block pacman;
 
+    Timer gameLoop;
+
     public Pacman(){
         setPreferredSize(new Dimension(boardWidth,boardHeight));
         setBackground(Color.BLACK);
+        addKeyListener(this);
+        setFocusable(true);
 
         wallImage = new ImageIcon(getClass().getResource("/images/wall.png")).getImage();
 
@@ -92,6 +112,8 @@ public class Pacman extends JPanel{
         pacmanLeftImage = new ImageIcon(getClass().getResource("/images/pacmanLeft.png")).getImage();
         pacmanRightImage = new ImageIcon(getClass().getResource("/images/pacmanRight.png")).getImage();
         loadMap();
+        gameLoop = new Timer(50,this);
+        gameLoop.start();
 
     }
 
@@ -147,11 +169,12 @@ public class Pacman extends JPanel{
         for(Block ghost:ghosts){
             g.drawImage(ghost.image,ghost.x, ghost.y, ghost.width, ghost.height, null);
         }
-        for(Block food:foods){
-            g.drawImage(food.image,food.x,food.y, food.width, food.height, null);
-        }
         for(Block wall:walls){
-            g.drawImage(wall.image,wall.x, wall.y, wall.width, wall.height, null);
+            g.drawImage(wall.image,wall.x,wall.y, wall.width, wall.height, null);
+        }
+        g.setColor(Color.YELLOW);
+        for(Block food:foods){
+            g.fillRect(food.x, food.y, food.width, food.height);
         }
 
 
