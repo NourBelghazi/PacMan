@@ -138,6 +138,17 @@ public class Pacman extends JPanel{
         }
         public void paintComponent(Graphics g){
         super.paintComponent(g);
+        draw(g);
     }
+    public void draw(Graphics g){
+        g.drawImage(pacman.image,pacman.x, pacman.y, pacman.width, pacman.height, null);
+
+
+        for(Block ghost:ghosts){
+            g.drawImage(ghost.image,pacman.x, ghost.y, ghost.width, ghost.height, null);
+        }
+
+    }
+
 
     }
