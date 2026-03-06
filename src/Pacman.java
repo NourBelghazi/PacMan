@@ -168,6 +168,9 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
     Timer gameLoop;
     char[] directions = {'U', 'D', 'L', 'R'};
     Random random = new Random();
+    int score =0;
+    int lives =3;
+    boolean gameOver = false;
 
     public Pacman() {
         setPreferredSize(new Dimension(boardWidth, boardHeight));
@@ -257,6 +260,14 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
         for (Block food : foods) {
             g.fillRect(food.x, food.y, food.width, food.height);
         }
+        g.setFont(new Font("Arial", Font.PLAIN, 18));
+        if (gameOver) {
+            g.drawString("Game Over: " + String.valueOf(score), tileSize/2, tileSize/2);
+        }
+        else {
+            g.drawString("x" + String.valueOf(lives) + " Score: " + String.valueOf(score), tileSize/2, tileSize/2);
+        }
+
 
 
     }
@@ -279,12 +290,18 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
             }
 
         }
+
         for (Block ghost : ghosts) {
+            if(ghost.y==9*tileSize && ghost.x==4*tileSize){
+                char newDirection = directions[random.nextInt(4)];
+                ghost.updateDirection(newDirection);
+
+            }
             ghost.y += ghost.velocityY;
             ghost.x += ghost.velocityX;
 
             for (Block wall : walls) {
-                if (collision(ghost, wall)) {
+                if (collision(ghost, wall)||ghost.x<=0||ghost.x+ghost.width>=boardWidth) {
                     ghost.y -= ghost.velocityY;
                     ghost.x -= ghost.velocityX;
                     char newDirection = directions[random.nextInt(4)];
@@ -293,7 +310,17 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
             }
 
 
+
         }
+        Block foodEaten = null;
+
+        for(Block food:foods){
+            if(collision(pacman,food)) {
+                score+=10;
+                foodEaten = food;
+            }
+        }
+        foods.remove(foodEaten);
 
 
     }
