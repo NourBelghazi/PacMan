@@ -10,6 +10,9 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
     public void actionPerformed(ActionEvent e) {
         move();
         repaint();
+        if(gameOver){
+            gameLoop.stop();
+        }
     }
 
     @Override
@@ -280,6 +283,24 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
     }
 
     public void move() {
+        for(Block ghost:ghosts){
+            if(collision(ghost,pacman)){
+                lives--;
+                if(lives==0){
+                    gameOver=true;
+                    return;
+                }
+                pacman.x =pacman.startX;
+                pacman.y =pacman.startY;
+
+                for(Block g:ghosts) {
+
+                    g.x = g.startX;
+                    g.y = g.startY;
+                }
+
+            }
+        }
         pacman.x += pacman.velocityX;
         pacman.y += pacman.velocityY;
 
