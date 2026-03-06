@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Random;
 import javax.swing.*;
 
-public class Pacman extends JPanel implements ActionListener, KeyListener{
+public class Pacman extends JPanel implements ActionListener, KeyListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -13,28 +13,47 @@ public class Pacman extends JPanel implements ActionListener, KeyListener{
     }
 
     @Override
-    public void keyTyped(KeyEvent e) {}
+    public void keyTyped(KeyEvent e) {
+    }
 
     @Override
-    public void keyPressed(KeyEvent e) {}
+    public void keyPressed(KeyEvent e) {
+    }
 
     @Override
     public void keyReleased(KeyEvent e) {
-        if(e.getKeyCode()==KeyEvent.VK_UP){
+        if (e.getKeyCode() == KeyEvent.VK_UP) {
             pacman.updateDirection('U');
+
         }
-        if(e.getKeyCode()==KeyEvent.VK_DOWN){
+        if (e.getKeyCode() == KeyEvent.VK_DOWN) {
             pacman.updateDirection('D');
+
         }
-        if(e.getKeyCode()==KeyEvent.VK_RIGHT){
+        if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
             pacman.updateDirection('R');
+
+
         }
-        if(e.getKeyCode()==KeyEvent.VK_LEFT){
+        if (e.getKeyCode() == KeyEvent.VK_LEFT) {
             pacman.updateDirection('L');
+
+        }
+        if (pacman.direction == 'U') {
+            pacman.image = pacmanUpImage;
+        }
+        if (pacman.direction == 'D') {
+            pacman.image = pacmanDownImage;
+        }
+        if (pacman.direction == 'R') {
+            pacman.image = pacmanRightImage;
+        }
+        if (pacman.direction == 'L') {
+            pacman.image = pacmanLeftImage;
         }
     }
 
-    class Block{
+    class Block {
         int x;
         int y;
         int height;
@@ -45,37 +64,51 @@ public class Pacman extends JPanel implements ActionListener, KeyListener{
 
         char direction = 'U';
         int velocityX = 0;
-        int velocityY =0;
+        int velocityY = 0;
 
-        void updateDirection(char direction){
+        void updateDirection(char direction) {
+            char prevDirection = this.direction;
             this.direction = direction;
             updateVelocity();
-        }
-        void updateVelocity(){
-            if(this.direction == 'U'){
-                velocityY = -tileSize/4;
-                velocityX =0;
-            }
-            if(this.direction == 'D'){
-                velocityY = -tileSize/4;
-                velocityX =0;
-            }
-            if(this.direction == 'R'){
-                velocityX = tileSize/4;
-                velocityY =0;
-            }
-            if(this.direction == 'D'){
-                velocityX = -tileSize/4;
-                velocityY =0;
+            this.x += this.velocityX;
+            this.y += this.velocityY;
+            for (Block wall : walls) {
+                if (collision(this, wall)) {
+                    this.x -= this.velocityX;
+                    this.y -= this.velocityY;
+                    this.direction = prevDirection;
+                    updateVelocity();
+
+                }
             }
 
         }
 
+        void updateVelocity() {
+            if (this.direction == 'U') {
+                velocityY = -tileSize / 4;
+                velocityX = 0;
+            }
+            if (this.direction == 'D') {
+                velocityY = tileSize / 4;
+                velocityX = 0;
+            }
+            if (this.direction == 'R') {
+                velocityX = tileSize / 4;
+                velocityY = 0;
+            }
+            if (this.direction == 'L') {
+                velocityX = -tileSize / 4;
+                velocityY = 0;
+            }
 
-         Block(Image image, int x, int y, int height, int width){
-            this.image=image;
+        }
+
+
+        Block(Image image, int x, int y, int height, int width) {
+            this.image = image;
             this.x = x;
-             this.y = y;
+            this.y = y;
             this.height = height;
             this.width = width;
             this.startX = x;
@@ -88,9 +121,9 @@ public class Pacman extends JPanel implements ActionListener, KeyListener{
 
     private int rowCount = 21;
     private int columnCount = 19;
-    private int tileSize =32;
-    private int boardWidth = tileSize*columnCount;
-    private int boardHeight = tileSize*rowCount;
+    private int tileSize = 32;
+    private int boardWidth = tileSize * columnCount;
+    private int boardHeight = tileSize * rowCount;
 
     private Image wallImage;
     private Image blueGhostImage;
@@ -133,9 +166,11 @@ public class Pacman extends JPanel implements ActionListener, KeyListener{
     Block pacman;
 
     Timer gameLoop;
+    char[] directions = {'U', 'D', 'L', 'R'};
+    Random random = new Random();
 
-    public Pacman(){
-        setPreferredSize(new Dimension(boardWidth,boardHeight));
+    public Pacman() {
+        setPreferredSize(new Dimension(boardWidth, boardHeight));
         setBackground(Color.BLACK);
         addKeyListener(this);
         setFocusable(true);
@@ -153,78 +188,113 @@ public class Pacman extends JPanel implements ActionListener, KeyListener{
         pacmanLeftImage = new ImageIcon(getClass().getResource("/images/pacmanLeft.png")).getImage();
         pacmanRightImage = new ImageIcon(getClass().getResource("/images/pacmanRight.png")).getImage();
         loadMap();
-        gameLoop = new Timer(50,this);
+        for (Block ghost : ghosts) {
+            char newDirection = directions[random.nextInt(4)];
+            ghost.updateDirection(newDirection);
+        }
+
+        gameLoop = new Timer(50, this);
         gameLoop.start();
 
     }
 
-        public void loadMap(){
-            walls = new HashSet<Block>();
-            foods = new HashSet<Block>();
-            ghosts = new HashSet<Block>();
+    public void loadMap() {
+        walls = new HashSet<Block>();
+        foods = new HashSet<Block>();
+        ghosts = new HashSet<Block>();
 
-            for(int r = 0; r<rowCount; r++){
-                for(int c = 0; c<columnCount; c++){
-                    String row = tileMap[r];
-                    char tileMapChar = row.charAt(c);
+        for (int r = 0; r < rowCount; r++) {
+            for (int c = 0; c < columnCount; c++) {
+                String row = tileMap[r];
+                char tileMapChar = row.charAt(c);
 
-                    int x = c*tileSize;
-                    int y = r*tileSize;
+                int x = c * tileSize;
+                int y = r * tileSize;
 
-                    if(tileMapChar == 'X'){
-                        walls.add(new Block(wallImage, x, y, tileSize,tileSize));
-                    }
-                    if(tileMapChar == 'b'){
-                        ghosts.add(new Block(blueGhostImage, x, y, tileSize,tileSize));
-                    }
-                    if(tileMapChar == 'o'){
-                        ghosts.add(new Block(orangeGhostImage, x, y, tileSize,tileSize));
-                    }
-
-                    if(tileMapChar == 'p'){
-                        ghosts.add(new Block(pinkGhostImage, x, y, tileSize,tileSize));
-                    }
-                    if(tileMapChar == 'r'){
-                        ghosts.add(new Block(redGhostImage, x, y, tileSize,tileSize));
-                    }
-                    else if(tileMapChar == 'P'){
-                        pacman = new Block( pacmanRightImage, x, y, tileSize,tileSize);
-                    }
-                    if(tileMapChar == ' '){
-                        foods.add(new Block(null, x+14, y+14, 4,4));
-                    }
-
-
+                if (tileMapChar == 'X') {
+                    walls.add(new Block(wallImage, x, y, tileSize, tileSize));
                 }
-            }
+                if (tileMapChar == 'b') {
+                    ghosts.add(new Block(blueGhostImage, x, y, tileSize, tileSize));
+                }
+                if (tileMapChar == 'o') {
+                    ghosts.add(new Block(orangeGhostImage, x, y, tileSize, tileSize));
+                }
 
+                if (tileMapChar == 'p') {
+                    ghosts.add(new Block(pinkGhostImage, x, y, tileSize, tileSize));
+                }
+                if (tileMapChar == 'r') {
+                    ghosts.add(new Block(redGhostImage, x, y, tileSize, tileSize));
+                } else if (tileMapChar == 'P') {
+                    pacman = new Block(pacmanRightImage, x, y, tileSize, tileSize);
+                }
+                if (tileMapChar == ' ') {
+                    foods.add(new Block(null, x + 14, y + 14, 4, 4));
+                }
+
+
+            }
         }
-        public void paintComponent(Graphics g){
+
+    }
+
+    public void paintComponent(Graphics g) {
         super.paintComponent(g);
         draw(g);
     }
-    public void draw(Graphics g){
-        g.drawImage(pacman.image,pacman.x, pacman.y, pacman.width, pacman.height, null);
 
+    public void draw(Graphics g) {
+        g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
 
-        for(Block ghost:ghosts){
-            g.drawImage(ghost.image,ghost.x, ghost.y, ghost.width, ghost.height, null);
+        for (Block ghost : ghosts) {
+            g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
         }
-        for(Block wall:walls){
-            g.drawImage(wall.image,wall.x,wall.y, wall.width, wall.height, null);
+        for (Block wall : walls) {
+            g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
         }
         g.setColor(Color.YELLOW);
-        for(Block food:foods){
+        for (Block food : foods) {
             g.fillRect(food.x, food.y, food.width, food.height);
         }
 
 
     }
-    public void move(){
-        pacman.x +=pacman.velocityX;
-        pacman.y +=pacman.velocityY;
 
+    public boolean collision(Block a, Block b) {
+        return a.x < b.x + b.width - 5 &&
+                a.x + a.width - 5 > b.x &&
+                a.y < b.y + b.height - 5 &&
+                a.y + a.height - 5 > b.y;
     }
 
+    public void move() {
+        pacman.x += pacman.velocityX;
+        pacman.y += pacman.velocityY;
+
+        for (Block wall : walls) {
+            if (collision(wall, pacman)) {
+                pacman.x -= pacman.velocityX;
+                pacman.y -= pacman.velocityY;
+            }
+
+        }
+        for (Block ghost : ghosts) {
+            ghost.y += ghost.velocityY;
+            ghost.x += ghost.velocityX;
+
+            for (Block wall : walls) {
+                if (collision(ghost, wall)) {
+                    ghost.y -= ghost.velocityY;
+                    ghost.x -= ghost.velocityX;
+                    char newDirection = directions[random.nextInt(4)];
+                    ghost.updateDirection(newDirection);
+                }
+            }
+
+
+        }
+
 
     }
+}
