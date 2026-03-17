@@ -77,7 +77,7 @@ git clone git@github.com:NourBelghazi/Pacman-in-Java.git
 ### 3️⃣ Command line
 
 ```bash
-javac -d out src/*.java
+javac -d out -sourcepath src src/App.java
 java -cp out:src App
 ```
 
@@ -88,54 +88,48 @@ java -cp out:src App
 ```
 Pacman-in-Java/
 ├── src/
-│   ├── App.java           # Entry point – creates the JFrame window
-│   ├── Pacman.java        # Game panel – all logic, rendering, and input
-│   └── images/
-│       ├── wall.png
-│       ├── pacmanUp/Down/Left/Right.png
-│       ├── blueGhost / redGhost / pinkGhost / orangeGhost.png
-│       ├── scaredGhost.png   ← scared ghost (power mode)
-│       ├── powerFood.png     ← power pellet sprite
-│       └── cherry.png        ← bonus fruit sprite
-├── .gitignore
-└── README.md
+│   ├── App.java                        # Entry point – creates the JFrame
+│   └── pacman/
+│       ├── GameConstants.java          # All game-wide constants (tile size, scores, timers)
+│       ├── ImageLoader.java            # Utility – loads PNG sprites from classpath
+│       ├── GamePanel.java              # JPanel + Timer – connects engine, renderer, input
+│       ├── entity/
+│       │   └── Block.java              # Game entity (position, velocity, sprite, collision)
+│       ├── map/
+│       │   └── GameMap.java            # Tile-map → entity sets (walls, food, ghosts, Pacman)
+│       ├── engine/
+│       │   └── GameEngine.java         # All game logic (movement, collisions, score, timers)
+│       ├── renderer/
+│       │   └── GameRenderer.java       # draw() + drawHUD() + overlays
+│       └── input/
+│           └── InputHandler.java       # KeyAdapter – delegates to GameEngine
+└── src/images/
+    ├── wall.png / pacmanUp/Down/Left/Right.png
+    ├── blueGhost / redGhost / pinkGhost / orangeGhost.png
+    ├── scaredGhost.png                 # scared ghost (power mode)
+    ├── powerFood.png                   # power pellet sprite
+    └── cherry.png                      # bonus fruit sprite
 ```
 
 ---
 
 ## 🧠 Architecture overview
 
-### `App.java`
+Each class has a **single responsibility**:
 
-Creates the `JFrame` window and adds the `Pacman` panel.
+| Class | Responsibility |
+|---|---|
+| `App` | Creates the window |
+| `GamePanel` | JPanel shell – owns the Timer and wires components |
+| `GameConstants` | Single source of truth for all numeric constants |
+| `ImageLoader` | Loads PNG images from the classpath |
+| `Block` | Data: position, velocity, sprite; static `collides()` |
+| `GameMap` | Parses `TILE_MAP` into entity `HashSet`s |
+| `GameEngine` | All game state and logic (move, score, lives, levels) |
+| `GameRenderer` | Reads engine state, draws everything via `Graphics` |
+| `InputHandler` | Translates key events into `GameEngine` method calls |
 
-### `Pacman.java`
-
-```
-Pacman (JPanel)
-│
-├── Block (inner class)          – any entity: wall, food, ghost, Pacman
-│
-├── loadMap()                    – parses TILE_MAP into entity sets
-├── move()                       – one tick, delegates to sub-methods:
-│   ├── movePacman()
-│   ├── moveGhosts()
-│   ├── handleGhostCollisions()
-│   ├── handleFoodCollection()
-│   ├── handlePowerPelletCollection()
-│   ├── handleCherryCollection()
-│   ├── tickTimers()
-│   └── checkLevelComplete()
-├── draw() / drawHUD()           – rendering + overlays
-├── activatePowerMode()          – switch ghosts to scaredGhost.png
-├── deactivatePowerMode()        – restore normal sprites
-├── resetPositions()             – reposition after life lost
-├── spawnCherry()                – place cherry at row 3 col 9
-├── restartGame()                – full reset, keeps high score
-└── collision(a, b)              – AABB with 5-px inset
-```
-
-**Game loop:** `javax.swing.Timer` fires every **50 ms** → `move()` + `repaint()`.
+**Game loop:** `javax.swing.Timer` fires every **50 ms** → `GameEngine.move()` + `repaint()`.
 
 ---
 
