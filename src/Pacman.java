@@ -46,6 +46,7 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
     private void restartGame() {
         score          = 0;
         lives          = 3;
+        level          = 1;
         gameOver       = false;
         paused         = false;
         powerModeTicks = 0;
@@ -161,6 +162,7 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
 
     int     score            = 0;
     int     lives            = 3;
+    int     level            = 1;
     boolean gameOver         = false;
     boolean paused           = false;
     int     powerModeTicks   = 0;
@@ -355,6 +357,9 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
         pacman.x += pacman.velocityX;
         pacman.y += pacman.velocityY;
 
+        if      (pacman.x + pacman.width <= 0) pacman.x = boardWidth;
+        else if (pacman.x >= boardWidth)        pacman.x = -pacman.width;
+
         for (Block wall : walls) {
             if (collision(wall, pacman)) {
                 pacman.x -= pacman.velocityX;
@@ -368,8 +373,12 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
             }
             ghost.y += ghost.velocityY;
             ghost.x += ghost.velocityX;
+
+            if      (ghost.x + ghost.width <= 0) ghost.x = boardWidth;
+            else if (ghost.x >= boardWidth)       ghost.x = -ghost.width;
+
             for (Block wall : walls) {
-                if (collision(ghost, wall) || ghost.x <= 0 || ghost.x + ghost.width >= boardWidth) {
+                if (collision(ghost, wall)) {
                     ghost.y -= ghost.velocityY;
                     ghost.x -= ghost.velocityX;
                     ghost.updateDirection(directions[random.nextInt(4)]);
@@ -422,6 +431,14 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
 
         if (powerModeTicks > 0 && --powerModeTicks == 0) {
             deactivatePowerMode();
+        }
+
+        if (foods.isEmpty() && powerPellets.isEmpty()) {
+            level++;
+            loadMap();
+            for (Block ghost : ghosts) {
+                ghost.updateDirection(directions[random.nextInt(4)]);
+            }
         }
     }
 }
