@@ -10,9 +10,6 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
     public void actionPerformed(ActionEvent e) {
         move();
         repaint();
-        if (gameOver) {
-            gameLoop.stop();
-        }
     }
 
     @Override
@@ -23,22 +20,42 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
 
     @Override
     public void keyReleased(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_UP) {
-            pacman.updateDirection('U');
+        int key = e.getKeyCode();
+
+        if (gameOver) {
+            if (key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) restartGame();
+            return;
         }
-        if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-            pacman.updateDirection('D');
+
+        if (key == KeyEvent.VK_P) {
+            paused = !paused;
+            repaint();
+            return;
         }
-        if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-            pacman.updateDirection('R');
+
+        if (paused) return;
+
+        switch (key) {
+            case KeyEvent.VK_UP:    pacman.updateDirection('U'); pacman.image = pacmanUpImage;    break;
+            case KeyEvent.VK_DOWN:  pacman.updateDirection('D'); pacman.image = pacmanDownImage;  break;
+            case KeyEvent.VK_RIGHT: pacman.updateDirection('R'); pacman.image = pacmanRightImage; break;
+            case KeyEvent.VK_LEFT:  pacman.updateDirection('L'); pacman.image = pacmanLeftImage;  break;
         }
-        if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-            pacman.updateDirection('L');
+    }
+
+    private void restartGame() {
+        score          = 0;
+        lives          = 3;
+        gameOver       = false;
+        paused         = false;
+        powerModeTicks = 0;
+        cherry         = null;
+        cherryTicks    = 0;
+        loadMap();
+        for (Block ghost : ghosts) {
+            ghost.updateDirection(directions[random.nextInt(4)]);
         }
-        if (pacman.direction == 'U') pacman.image = pacmanUpImage;
-        if (pacman.direction == 'D') pacman.image = pacmanDownImage;
-        if (pacman.direction == 'R') pacman.image = pacmanRightImage;
-        if (pacman.direction == 'L') pacman.image = pacmanLeftImage;
+        if (!gameLoop.isRunning()) gameLoop.start();
     }
 
     class Block {
@@ -145,6 +162,7 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
     int     score            = 0;
     int     lives            = 3;
     boolean gameOver         = false;
+    boolean paused           = false;
     int     powerModeTicks   = 0;
     int     ghostsEatenThisPower = 0;
 
@@ -251,13 +269,40 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
             g.fillRect(tileSize / 2, tileSize - 6, barWidth, 5);
         }
 
-        g.setFont(new Font("Arial", Font.PLAIN, 18));
+        g.setFont(new Font("Arial", Font.BOLD, 16));
+        g.setColor(Color.WHITE);
+        g.drawString("x" + lives + "  Score: " + score, tileSize / 2, tileSize / 2);
+
         if (gameOver) {
+            g.setColor(new Color(0, 0, 0, 180));
+            g.fillRect(0, boardHeight / 2 - 70, boardWidth, 145);
+
             g.setColor(Color.RED);
-            g.drawString("Game Over: " + score, tileSize / 2, tileSize / 2);
-        } else {
+            g.setFont(new Font("Arial", Font.BOLD, 32));
+            String gameOverText = "GAME OVER";
+            int textWidth = g.getFontMetrics().stringWidth(gameOverText);
+            g.drawString(gameOverText, (boardWidth - textWidth) / 2, boardHeight / 2 - 20);
+
             g.setColor(Color.WHITE);
-            g.drawString("x" + lives + " Score: " + score, tileSize / 2, tileSize / 2);
+            g.setFont(new Font("Arial", Font.PLAIN, 18));
+            String scoreText = "Score: " + score;
+            textWidth = g.getFontMetrics().stringWidth(scoreText);
+            g.drawString(scoreText, (boardWidth - textWidth) / 2, boardHeight / 2 + 15);
+
+            g.setColor(Color.YELLOW);
+            String restartText = "Press ENTER or SPACE to restart";
+            textWidth = g.getFontMetrics().stringWidth(restartText);
+            g.drawString(restartText, (boardWidth - textWidth) / 2, boardHeight / 2 + 45);
+        }
+
+        if (paused) {
+            g.setColor(new Color(0, 0, 0, 160));
+            g.fillRect(0, boardHeight / 2 - 40, boardWidth, 80);
+            g.setColor(Color.CYAN);
+            g.setFont(new Font("Arial", Font.BOLD, 30));
+            String pausedText = "PAUSED  –  P to resume";
+            int textWidth = g.getFontMetrics().stringWidth(pausedText);
+            g.drawString(pausedText, (boardWidth - textWidth) / 2, boardHeight / 2 + 10);
         }
     }
 
@@ -283,6 +328,8 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
     }
 
     public void move() {
+        if (paused || gameOver) return;
+
         for (Block ghost : ghosts) {
             if (collision(ghost, pacman) && ghost.respawnTicks == 0) {
                 if (powerModeTicks > 0) {
