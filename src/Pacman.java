@@ -99,6 +99,7 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
     private Image scaredGhostImage;
     private Image pacmanUpImage, pacmanDownImage, pacmanLeftImage, pacmanRightImage;
     private Image powerFoodImage;
+    private Image cherryImage;
 
     private String[] tileMap = {
         "XXXXXXXXXXXXXXXXXXX",
@@ -129,6 +130,13 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
     HashSet<Block> powerPellets;
     HashSet<Block> ghosts;
     Block pacman;
+    Block cherry      = null;
+    int   cherryTicks = 0;
+    int   totalFood      = 0;
+    int   foodEatenCount = 0;
+
+    private static final int CHERRY_DURATION = 200;
+    private static final int CHERRY_SCORE    = 100;
 
     Timer  gameLoop;
     char[] directions = {'U', 'D', 'L', 'R'};
@@ -161,6 +169,7 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
         pacmanLeftImage  = new ImageIcon(getClass().getResource("/images/pacmanLeft.png")).getImage();
         pacmanRightImage = new ImageIcon(getClass().getResource("/images/pacmanRight.png")).getImage();
         powerFoodImage   = new ImageIcon(getClass().getResource("/images/powerFood.png")).getImage();
+        cherryImage      = new ImageIcon(getClass().getResource("/images/cherry.png")).getImage();
 
         loadMap();
         for (Block ghost : ghosts) {
@@ -175,6 +184,9 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
         foods        = new HashSet<>();
         powerPellets = new HashSet<>();
         ghosts       = new HashSet<>();
+        cherry       = null;
+        cherryTicks    = 0;
+        foodEatenCount = 0;
 
         for (int r = 0; r < rowCount; r++) {
             for (int c = 0; c < columnCount; c++) {
@@ -195,6 +207,14 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
                 }
             }
         }
+        totalFood = foods.size();
+    }
+
+    private void spawnCherry() {
+        int centerX = 9 * tileSize;
+        int centerY = 3 * tileSize;
+        cherry      = new Block(cherryImage, centerX, centerY, tileSize, tileSize);
+        cherryTicks = CHERRY_DURATION;
     }
 
     public void paintComponent(Graphics g) {
@@ -220,6 +240,9 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
         }
         for (Block pp : powerPellets) {
             g.drawImage(pp.image, pp.x, pp.y, pp.width, pp.height, null);
+        }
+        if (cherry != null) {
+            g.drawImage(cherry.image, cherry.x, cherry.y, cherry.width, cherry.height, null);
         }
 
         if (powerModeTicks > 0) {
@@ -318,6 +341,7 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
             if (collision(pacman, food)) {
                 score += 10;
                 foodEaten = food;
+                foodEatenCount++;
             }
         }
         foods.remove(foodEaten);
@@ -332,6 +356,21 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
         if (pelletEaten != null) {
             powerPellets.remove(pelletEaten);
             activatePowerMode();
+        }
+
+        if (cherry != null && collision(pacman, cherry)) {
+            score += CHERRY_SCORE;
+            cherry      = null;
+            cherryTicks = 0;
+        }
+
+        boolean halfFoodEaten = totalFood > 0 && foodEatenCount >= totalFood / 2;
+        if (cherry == null && cherryTicks == 0 && halfFoodEaten) {
+            spawnCherry();
+        }
+
+        if (cherryTicks > 0 && --cherryTicks == 0) {
+            cherry = null;
         }
 
         if (powerModeTicks > 0 && --powerModeTicks == 0) {
