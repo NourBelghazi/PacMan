@@ -6,59 +6,6 @@ import javax.swing.*;
 
 public class Pacman extends JPanel implements ActionListener, KeyListener {
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        move();
-        repaint();
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) {}
-
-    @Override
-    public void keyPressed(KeyEvent e) {}
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-        int key = e.getKeyCode();
-
-        if (gameOver) {
-            if (key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) restartGame();
-            return;
-        }
-
-        if (key == KeyEvent.VK_P) {
-            paused = !paused;
-            repaint();
-            return;
-        }
-
-        if (paused) return;
-
-        switch (key) {
-            case KeyEvent.VK_UP:    pacman.updateDirection('U'); pacman.image = pacmanUpImage;    break;
-            case KeyEvent.VK_DOWN:  pacman.updateDirection('D'); pacman.image = pacmanDownImage;  break;
-            case KeyEvent.VK_RIGHT: pacman.updateDirection('R'); pacman.image = pacmanRightImage; break;
-            case KeyEvent.VK_LEFT:  pacman.updateDirection('L'); pacman.image = pacmanLeftImage;  break;
-        }
-    }
-
-    private void restartGame() {
-        score          = 0;
-        lives          = 3;
-        level          = 1;
-        gameOver       = false;
-        paused         = false;
-        powerModeTicks = 0;
-        cherry         = null;
-        cherryTicks    = 0;
-        loadMap();
-        for (Block ghost : ghosts) {
-            ghost.updateDirection(directions[random.nextInt(4)]);
-        }
-        if (!gameLoop.isRunning()) gameLoop.start();
-    }
-
     class Block {
         int x, y, height, width;
         Image image;
@@ -66,12 +13,20 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
         int startX, startY;
         int respawnTicks = 0;
         char direction = 'U';
-        int velocityX = 0;
-        int velocityY = 0;
+        int velocityX  = 0;
+        int velocityY  = 0;
 
-        void updateDirection(char direction) {
-            char prevDirection = this.direction;
-            this.direction = direction;
+        Block(Image image, int x, int y, int height, int width) {
+            this.image       = image;
+            this.normalImage = image;
+            this.x = x; this.y = y;
+            this.height = height; this.width = width;
+            this.startX = x; this.startY = y;
+        }
+
+        void updateDirection(char newDirection) {
+            char previousDirection = this.direction;
+            this.direction = newDirection;
             updateVelocity();
             this.x += this.velocityX;
             this.y += this.velocityY;
@@ -79,7 +34,7 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
                 if (collision(this, wall)) {
                     this.x -= this.velocityX;
                     this.y -= this.velocityY;
-                    this.direction = prevDirection;
+                    this.direction = previousDirection;
                     updateVelocity();
                 }
             }
@@ -92,34 +47,16 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
             if (this.direction == 'L') { velocityX = -tileSize / 4; velocityY = 0; }
         }
 
-        void reset() {
-            x = startX;
-            y = startY;
-        }
-
-        Block(Image image, int x, int y, int height, int width) {
-            this.image       = image;
-            this.normalImage = image;
-            this.x = x; this.y = y;
-            this.height = height; this.width = width;
-            this.startX = x; this.startY = y;
-        }
+        void reset() { x = startX; y = startY; }
     }
 
-    private int rowCount    = 21;
-    private int columnCount = 19;
-    private int tileSize    = 32;
-    private int boardWidth  = tileSize * columnCount;
-    private int boardHeight = tileSize * rowCount;
+    private static final int ROW_COUNT    = 21;
+    private static final int COLUMN_COUNT = 19;
+    private final int tileSize    = 32;
+    private final int boardWidth  = tileSize * COLUMN_COUNT;
+    private final int boardHeight = tileSize * ROW_COUNT;
 
-    private Image wallImage;
-    private Image blueGhostImage, redGhostImage, pinkGhostImage, orangeGhostImage;
-    private Image scaredGhostImage;
-    private Image pacmanUpImage, pacmanDownImage, pacmanLeftImage, pacmanRightImage;
-    private Image powerFoodImage;
-    private Image cherryImage;
-
-    private String[] tileMap = {
+    private static final String[] TILE_MAP = {
         "XXXXXXXXXXXXXXXXXXX",
         "XW       X       WX",
         "X XX XXX X XXX XX X",
@@ -143,34 +80,41 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
         "XXXXXXXXXXXXXXXXXXX"
     };
 
-    HashSet<Block> walls;
-    HashSet<Block> foods;
-    HashSet<Block> powerPellets;
-    HashSet<Block> ghosts;
-    Block pacman;
-    Block cherry      = null;
-    int   cherryTicks = 0;
-    int   totalFood      = 0;
-    int   foodEatenCount = 0;
+    private Image wallImage;
+    private Image blueGhostImage, redGhostImage, pinkGhostImage, orangeGhostImage;
+    private Image scaredGhostImage;
+    private Image pacmanUpImage, pacmanDownImage, pacmanLeftImage, pacmanRightImage;
+    private Image powerFoodImage;
+    private Image cherryImage;
 
-    private static final int CHERRY_DURATION = 200;
-    private static final int CHERRY_SCORE    = 100;
+    private HashSet<Block> walls;
+    private HashSet<Block> foods;
+    private HashSet<Block> powerPellets;
+    private HashSet<Block> ghosts;
+    private Block pacman;
+    private Block cherry      = null;
+    private int   cherryTicks = 0;
+    private int   totalFood      = 0;
+    private int   foodEatenCount = 0;
 
-    Timer  gameLoop;
-    char[] directions = {'U', 'D', 'L', 'R'};
-    Random random     = new Random();
+    private Timer  gameLoop;
+    private final char[] directions = {'U', 'D', 'L', 'R'};
+    private final Random random     = new Random();
 
-    int     score            = 0;
-    int     lives            = 3;
-    int     level            = 1;
-    boolean gameOver         = false;
-    boolean paused           = false;
-    int     powerModeTicks   = 0;
-    int     ghostsEatenThisPower = 0;
+    private int     score                = 0;
+    private int     highScore            = 0;
+    private int     lives                = 3;
+    private int     level                = 1;
+    private boolean gameOver             = false;
+    private boolean paused               = false;
+    private int     powerModeTicks       = 0;
+    private int     ghostsEatenThisPower = 0;
 
     private static final int POWER_DURATION   = 300;
     private static final int GHOST_RESPAWN    = 80;
     private static final int GHOST_BASE_SCORE = 200;
+    private static final int CHERRY_DURATION  = 200;
+    private static final int CHERRY_SCORE     = 100;
 
     public Pacman() {
         setPreferredSize(new Dimension(boardWidth, boardHeight));
@@ -192,9 +136,7 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
         cherryImage      = new ImageIcon(getClass().getResource("/images/cherry.png")).getImage();
 
         loadMap();
-        for (Block ghost : ghosts) {
-            ghost.updateDirection(directions[random.nextInt(4)]);
-        }
+        randomizeGhostDirections();
         gameLoop = new Timer(50, this);
         gameLoop.start();
     }
@@ -204,13 +146,14 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
         foods        = new HashSet<>();
         powerPellets = new HashSet<>();
         ghosts       = new HashSet<>();
-        cherry       = null;
+        cherry         = null;
         cherryTicks    = 0;
         foodEatenCount = 0;
+        powerModeTicks = 0;
 
-        for (int r = 0; r < rowCount; r++) {
-            for (int c = 0; c < columnCount; c++) {
-                char tile = tileMap[r].charAt(c);
+        for (int r = 0; r < ROW_COUNT; r++) {
+            for (int c = 0; c < COLUMN_COUNT; c++) {
+                char tile = TILE_MAP[r].charAt(c);
                 int x = c * tileSize;
                 int y = r * tileSize;
 
@@ -230,27 +173,24 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
         totalFood = foods.size();
     }
 
+    private void randomizeGhostDirections() {
+        for (Block ghost : ghosts) {
+            ghost.updateDirection(directions[random.nextInt(4)]);
+        }
+    }
+
     private void spawnCherry() {
-        int centerX = 9 * tileSize;
-        int centerY = 3 * tileSize;
-        cherry      = new Block(cherryImage, centerX, centerY, tileSize, tileSize);
+        cherry      = new Block(cherryImage, 9 * tileSize, 3 * tileSize, tileSize, tileSize);
         cherryTicks = CHERRY_DURATION;
     }
 
+    @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         draw(g);
     }
 
     public void draw(Graphics g) {
-        g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
-
-        for (Block ghost : ghosts) {
-            boolean flickering = ghost.respawnTicks > 0 && (ghost.respawnTicks / 5) % 2 == 0;
-            if (!flickering) {
-                g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
-            }
-        }
         for (Block wall : walls) {
             g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
         }
@@ -264,7 +204,18 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
         if (cherry != null) {
             g.drawImage(cherry.image, cherry.x, cherry.y, cherry.width, cherry.height, null);
         }
+        for (Block ghost : ghosts) {
+            boolean flickering = ghost.respawnTicks > 0 && (ghost.respawnTicks / 5) % 2 == 0;
+            if (!flickering) {
+                g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
+            }
+        }
+        g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
 
+        drawHUD(g);
+    }
+
+    private void drawHUD(Graphics g) {
         if (powerModeTicks > 0) {
             g.setColor(new Color(0, 200, 255));
             int barWidth = (int)((double) powerModeTicks / POWER_DURATION * (boardWidth - tileSize));
@@ -273,7 +224,10 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
 
         g.setFont(new Font("Arial", Font.BOLD, 16));
         g.setColor(Color.WHITE);
-        g.drawString("x" + lives + "  Score: " + score, tileSize / 2, tileSize / 2);
+        g.drawString("Lives: " + lives,    tileSize / 2,              tileSize / 2);
+        g.drawString("Score: " + score,    boardWidth / 3,            tileSize / 2);
+        g.drawString("Best: "  + highScore,(int)(boardWidth * 0.62),  tileSize / 2);
+        g.drawString("Lvl: "   + level,    boardWidth - tileSize * 2, tileSize / 2);
 
         if (gameOver) {
             g.setColor(new Color(0, 0, 0, 180));
@@ -281,20 +235,14 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
 
             g.setColor(Color.RED);
             g.setFont(new Font("Arial", Font.BOLD, 32));
-            String gameOverText = "GAME OVER";
-            int textWidth = g.getFontMetrics().stringWidth(gameOverText);
-            g.drawString(gameOverText, (boardWidth - textWidth) / 2, boardHeight / 2 - 20);
+            drawCentered(g, "GAME OVER", boardHeight / 2 - 20);
 
             g.setColor(Color.WHITE);
             g.setFont(new Font("Arial", Font.PLAIN, 18));
-            String scoreText = "Score: " + score;
-            textWidth = g.getFontMetrics().stringWidth(scoreText);
-            g.drawString(scoreText, (boardWidth - textWidth) / 2, boardHeight / 2 + 15);
+            drawCentered(g, "Score: " + score + "   Best: " + highScore, boardHeight / 2 + 15);
 
             g.setColor(Color.YELLOW);
-            String restartText = "Press ENTER or SPACE to restart";
-            textWidth = g.getFontMetrics().stringWidth(restartText);
-            g.drawString(restartText, (boardWidth - textWidth) / 2, boardHeight / 2 + 45);
+            drawCentered(g, "Press ENTER or SPACE to restart", boardHeight / 2 + 45);
         }
 
         if (paused) {
@@ -302,10 +250,13 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
             g.fillRect(0, boardHeight / 2 - 40, boardWidth, 80);
             g.setColor(Color.CYAN);
             g.setFont(new Font("Arial", Font.BOLD, 30));
-            String pausedText = "PAUSED  –  P to resume";
-            int textWidth = g.getFontMetrics().stringWidth(pausedText);
-            g.drawString(pausedText, (boardWidth - textWidth) / 2, boardHeight / 2 + 10);
+            drawCentered(g, "PAUSED  –  P to resume", boardHeight / 2 + 10);
         }
+    }
+
+    private void drawCentered(Graphics g, String text, int y) {
+        int textWidth = g.getFontMetrics().stringWidth(text);
+        g.drawString(text, (boardWidth - textWidth) / 2, y);
     }
 
     public boolean collision(Block a, Block b) {
@@ -315,45 +266,64 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
                a.y + a.height - 5 > b.y;
     }
 
+    private void addScore(int points) {
+        score += points;
+        if (score > highScore) highScore = score;
+    }
+
     private void activatePowerMode() {
         powerModeTicks       = POWER_DURATION;
         ghostsEatenThisPower = 0;
-        for (Block ghost : ghosts) {
-            ghost.image = scaredGhostImage;
-        }
+        for (Block ghost : ghosts) ghost.image = scaredGhostImage;
     }
 
     private void deactivatePowerMode() {
+        for (Block ghost : ghosts) ghost.image = ghost.normalImage;
+    }
+
+    private void resetPositions() {
+        pacman.reset();
+        pacman.velocityX = 0;
+        pacman.velocityY = 0;
+        pacman.direction = 'R';
+        pacman.image     = pacmanRightImage;
+        powerModeTicks   = 0;
+        deactivatePowerMode();
         for (Block ghost : ghosts) {
-            ghost.image = ghost.normalImage;
+            ghost.reset();
+            ghost.respawnTicks = 0;
+            ghost.updateDirection(directions[random.nextInt(4)]);
         }
+    }
+
+    private void restartGame() {
+        score          = 0;
+        lives          = 3;
+        level          = 1;
+        gameOver       = false;
+        paused         = false;
+        powerModeTicks = 0;
+        cherry         = null;
+        cherryTicks    = 0;
+        loadMap();
+        randomizeGhostDirections();
+        if (!gameLoop.isRunning()) gameLoop.start();
     }
 
     public void move() {
         if (paused || gameOver) return;
 
-        for (Block ghost : ghosts) {
-            if (collision(ghost, pacman) && ghost.respawnTicks == 0) {
-                if (powerModeTicks > 0) {
-                    int comboScore = GHOST_BASE_SCORE * (1 << ghostsEatenThisPower);
-                    score += comboScore;
-                    ghostsEatenThisPower++;
-                    ghost.reset();
-                    ghost.image        = ghost.normalImage;
-                    ghost.respawnTicks = GHOST_RESPAWN;
-                    ghost.updateDirection(directions[random.nextInt(4)]);
-                } else {
-                    lives--;
-                    if (lives == 0) { gameOver = true; return; }
-                    pacman.x = pacman.startX;
-                    pacman.y = pacman.startY;
-                    for (Block g : ghosts) { g.x = g.startX; g.y = g.startY; }
-                    powerModeTicks = 0;
-                    deactivatePowerMode();
-                }
-            }
-        }
+        movePacman();
+        moveGhosts();
+        handleGhostCollisions();
+        handleFoodCollection();
+        handlePowerPelletCollection();
+        handleCherryCollection();
+        tickTimers();
+        checkLevelComplete();
+    }
 
+    private void movePacman() {
         pacman.x += pacman.velocityX;
         pacman.y += pacman.velocityY;
 
@@ -366,7 +336,9 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
                 pacman.y -= pacman.velocityY;
             }
         }
+    }
 
+    private void moveGhosts() {
         for (Block ghost : ghosts) {
             if (ghost.y == 9 * tileSize && ghost.x == 4 * tileSize) {
                 ghost.updateDirection(directions[random.nextInt(4)]);
@@ -386,59 +358,102 @@ public class Pacman extends JPanel implements ActionListener, KeyListener {
             }
             if (ghost.respawnTicks > 0) {
                 ghost.respawnTicks--;
-                if (ghost.respawnTicks == 0 && powerModeTicks > 0) {
-                    ghost.image = scaredGhostImage;
-                }
+                if (ghost.respawnTicks == 0 && powerModeTicks > 0) ghost.image = scaredGhostImage;
             }
         }
+    }
 
-        Block foodEaten = null;
+    private void handleGhostCollisions() {
+        for (Block ghost : ghosts) {
+            if (!collision(ghost, pacman) || ghost.respawnTicks > 0) continue;
+
+            if (powerModeTicks > 0) {
+                addScore(GHOST_BASE_SCORE * (1 << ghostsEatenThisPower));
+                ghostsEatenThisPower++;
+                ghost.reset();
+                ghost.image        = ghost.normalImage;
+                ghost.respawnTicks = GHOST_RESPAWN;
+                ghost.updateDirection(directions[random.nextInt(4)]);
+            } else {
+                lives--;
+                if (lives == 0) { gameOver = true; if (score > highScore) highScore = score; return; }
+                resetPositions();
+                return;
+            }
+        }
+    }
+
+    private void handleFoodCollection() {
+        Block eaten = null;
         for (Block food : foods) {
-            if (collision(pacman, food)) {
-                score += 10;
-                foodEaten = food;
-                foodEatenCount++;
-            }
+            if (collision(pacman, food)) { eaten = food; break; }
         }
-        foods.remove(foodEaten);
+        if (eaten != null) {
+            foods.remove(eaten);
+            addScore(10);
+            foodEatenCount++;
+        }
+    }
 
-        Block pelletEaten = null;
+    private void handlePowerPelletCollection() {
+        Block eaten = null;
         for (Block pp : powerPellets) {
-            if (collision(pacman, pp)) {
-                score += 50;
-                pelletEaten = pp;
-            }
+            if (collision(pacman, pp)) { eaten = pp; break; }
         }
-        if (pelletEaten != null) {
-            powerPellets.remove(pelletEaten);
+        if (eaten != null) {
+            powerPellets.remove(eaten);
+            addScore(50);
             activatePowerMode();
         }
+    }
 
+    private void handleCherryCollection() {
         if (cherry != null && collision(pacman, cherry)) {
-            score += CHERRY_SCORE;
-            cherry      = null;
-            cherryTicks = 0;
+            addScore(CHERRY_SCORE);
+            cherry = null; cherryTicks = 0;
         }
-
         boolean halfFoodEaten = totalFood > 0 && foodEatenCount >= totalFood / 2;
-        if (cherry == null && cherryTicks == 0 && halfFoodEaten) {
-            spawnCherry();
-        }
+        if (cherry == null && cherryTicks == 0 && halfFoodEaten) spawnCherry();
+    }
 
-        if (cherryTicks > 0 && --cherryTicks == 0) {
-            cherry = null;
-        }
+    private void tickTimers() {
+        if (cherryTicks > 0 && --cherryTicks == 0)    cherry = null;
+        if (powerModeTicks > 0 && --powerModeTicks == 0) deactivatePowerMode();
+    }
 
-        if (powerModeTicks > 0 && --powerModeTicks == 0) {
-            deactivatePowerMode();
-        }
-
+    private void checkLevelComplete() {
         if (foods.isEmpty() && powerPellets.isEmpty()) {
             level++;
             loadMap();
-            for (Block ghost : ghosts) {
-                ghost.updateDirection(directions[random.nextInt(4)]);
-            }
+            randomizeGhostDirections();
+        }
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        move();
+        repaint();
+    }
+
+    @Override public void keyTyped(KeyEvent e)   {}
+    @Override public void keyPressed(KeyEvent e) {}
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        int key = e.getKeyCode();
+
+        if (gameOver) {
+            if (key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) restartGame();
+            return;
+        }
+        if (key == KeyEvent.VK_P) { paused = !paused; repaint(); return; }
+        if (paused) return;
+
+        switch (key) {
+            case KeyEvent.VK_UP:    pacman.updateDirection('U'); pacman.image = pacmanUpImage;    break;
+            case KeyEvent.VK_DOWN:  pacman.updateDirection('D'); pacman.image = pacmanDownImage;  break;
+            case KeyEvent.VK_RIGHT: pacman.updateDirection('R'); pacman.image = pacmanRightImage; break;
+            case KeyEvent.VK_LEFT:  pacman.updateDirection('L'); pacman.image = pacmanLeftImage;  break;
         }
     }
 }
