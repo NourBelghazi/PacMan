@@ -29,6 +29,7 @@ public class GameEngine {
     private int     cherryTicks          = 0;
     private int     foodEatenCount       = 0;
     private Block   cherry               = null;
+    private boolean cherrySpawned        = false;
 
     public GameEngine() {
         pacmanRightImage = ImageLoader.load("/images/pacmanRight.png");
@@ -46,6 +47,7 @@ public class GameEngine {
         gameMap.load();
         cherry         = null;
         cherryTicks    = 0;
+        cherrySpawned  = false;
         foodEatenCount = 0;
         powerModeTicks = 0;
         randomizeGhostDirections();
@@ -78,7 +80,7 @@ public class GameEngine {
 
     public void changePacmanDirection(char dir) {
         gameMap.pacman.updateDirection(dir, gameMap.walls);
-        switch (dir) {
+        switch (gameMap.pacman.direction) {
             case 'U': gameMap.pacman.image = pacmanUpImage;    break;
             case 'D': gameMap.pacman.image = pacmanDownImage;  break;
             case 'R': gameMap.pacman.image = pacmanRightImage; break;
@@ -204,10 +206,14 @@ public class GameEngine {
     private void handleCherryCollection() {
         if (cherry != null && Block.collides(gameMap.pacman, cherry)) {
             addScore(GameConstants.CHERRY_SCORE);
-            cherry = null; cherryTicks = 0;
+            cherry      = null;
+            cherryTicks = 0;
         }
         boolean halfFoodEaten = gameMap.totalFood > 0 && foodEatenCount >= gameMap.totalFood / 2;
-        if (cherry == null && cherryTicks == 0 && halfFoodEaten) spawnCherry();
+        if (!cherrySpawned && cherry == null && cherryTicks == 0 && halfFoodEaten) {
+            spawnCherry();
+            cherrySpawned = true;
+        }
     }
 
     private void tickTimers() {
